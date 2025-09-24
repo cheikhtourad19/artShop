@@ -16,7 +16,7 @@ var port = normalizePort(process.env.PORT || "3000");
 app.set("port", port);
 
 require("dotenv").config();
-const connectDB = require("./config/db");
+const connectDB = require("../config/db");
 
 // Connect to MongoDB
 connectDB();
