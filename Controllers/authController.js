@@ -100,4 +100,10 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+const protected = async (req, res) => {
+  res
+    .status(200)
+    .json({ msg: "You have accessed a protected route", user: req.user });
+};
+
+module.exports = { register, login, protected };
