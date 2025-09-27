@@ -5,7 +5,6 @@ const loadUserInfo = async (req, res) => {
   user = await User.findById(req.user.id);
   res.status(200).json({
     user: {
-      id: user._id,
       nom: user.nom,
       prenom: user.prenom,
       email: user.email,

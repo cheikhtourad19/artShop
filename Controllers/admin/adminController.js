@@ -28,7 +28,7 @@ const editUserInfo = async (req, res) => {
   const { nom, prenom, phone, email } = req.body;
   const userId = req.params.id;
   if (!nom || !prenom || !email || !phone) {
-    return res.status(400).json({ msg: "Please enter all required fields!!" });
+    return res.status(400).json({ msg: "Please enter all required fields" });
   }
   if (!validator.isEmail(email)) {
     return res.status(400).json({ msg: "Please enter a valid email" });
@@ -60,10 +60,12 @@ const editUserInfo = async (req, res) => {
 };
 
 const editPassword = async (req, res) => {
-  const { id, newPassword } = req.body;
-  console.log(id, newPassword);
+  const { id } = req.params;
+  const { newPassword } = req.body;
   if (!id || !newPassword) {
-    return res.status(400).json({ msg: "Please enter all required fields!!" });
+    return res
+      .status(400)
+      .json({ msg: "Please enter all required fields!!!!", req: req.body });
   }
   try {
     const user = await User.findById(id);
@@ -80,4 +82,26 @@ const editPassword = async (req, res) => {
   }
 };
 
-module.exports = { deleteUser, getAllUsers, editUserInfo, editPassword };
+const loadUserInfo = async (req, res) => {
+  user = await User.findById(req.params.id);
+  if (!user) {
+    return res.status(404).json({ msg: "User not found" });
+  }
+  res.status(200).json({
+    user: {
+      id: user._id,
+      nom: user.nom,
+      prenom: user.prenom,
+      email: user.email,
+      phone: user.phone,
+    },
+  });
+};
+
+module.exports = {
+  deleteUser,
+  getAllUsers,
+  editUserInfo,
+  editPassword,
+  loadUserInfo,
+};
