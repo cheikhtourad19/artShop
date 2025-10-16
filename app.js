@@ -7,6 +7,7 @@ var logger = require("morgan");
 var userRouter = require("./routes/userRoutes");
 var authRouter = require("./routes/authRoutes");
 var adminRouter = require("./routes/adminRoutes");
+var productController = require("./routes/productRoutes");
 
 var app = express();
 
@@ -30,6 +31,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/products", productController);
 
 // catch 404
 app.use(function (req, res, next) {

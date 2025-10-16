@@ -11,7 +11,12 @@ const productSchema = new mongoose.Schema(
     title: { type: String, required: true }, // peut être généré
     description: { type: String, required: true }, // générée par IA
     price: { type: Number, required: true },
-    imageUrl: { type: String, required: true }, // chemin ou URL
+    images: [
+      {
+        url: String,
+        public_id: String, // For Cloudinary
+      },
+    ], // chemin ou URL
   },
   { timestamps: true }
 );
