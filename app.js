@@ -8,6 +8,7 @@ var userRouter = require("./routes/userRoutes");
 var authRouter = require("./routes/authRoutes");
 var adminRouter = require("./routes/adminRoutes");
 var productController = require("./routes/productRoutes");
+var aiRouter = require("./routes/aiRoutes");
 
 var app = express();
 
@@ -32,7 +33,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/products", productController);
-
+app.use("/api/ai", aiRouter);
 // catch 404
 app.use(function (req, res, next) {
   next(createError(404));
