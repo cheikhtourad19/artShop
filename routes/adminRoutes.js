@@ -10,7 +10,7 @@ const {
 
 router.get("/users/:id", admin, loadUserInfo);
 router.get("/users", admin, getAllUsers);
-router.delete("/users/:id", admin, deleteUser);
+router.delete("/users/:id", admin, deleteUser); // Add :id parameter
 router.put("/users/:id", admin, editUserInfo);
 router.put("/users/:id/password", admin, editPassword);
 
