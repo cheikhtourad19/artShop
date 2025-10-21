@@ -80,7 +80,7 @@ async function editProduct(req, res) {
   try {
     const { id } = req.params;
     const { title, description, price } = req.body;
-
+    console.log(req.body);
     const user = req.user;
     const product = await Product.findById(id);
     if (user.isAdmin || product.artisan.equals(user._id)) {
