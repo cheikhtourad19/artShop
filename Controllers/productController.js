@@ -76,7 +76,32 @@ async function addProduct(req, res) {
     });
   }
 }
-async function editProduct(req, res) {}
+async function editProduct(req, res) {
+  try {
+    const { id } = req.params;
+    const { title, description, price } = req.body;
+
+    const user = req.user;
+    const product = await Product.findById(id);
+    if (user.isAdmin || product.artisan.equals(user._id)) {
+      await Product.findByIdAndUpdate(id, { title, description, price });
+      res.status(200).json({
+        success: true,
+        message: "Product updated successfully",
+      });
+    } else {
+      res.status(403).json({
+        success: false,
+        message: "vous n avez pas l'acces",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error,
+    });
+  }
+}
 async function deleteProduct(req, res) {
   try {
     const { id } = req.params;
