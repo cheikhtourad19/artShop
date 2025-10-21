@@ -1,7 +1,11 @@
 // aiRoutes.js
 const router = require("express").Router();
 const { protect } = require("../Middlewares/authMiddleware");
-const { generateProductImage } = require("../Controllers/aiController");
+const {
+  generateProductImage,
+  generateProductDescription,
+} = require("../Controllers/aiController");
+
 const multer = require("multer");
 
 // Configure multer for memory storage
@@ -18,5 +22,6 @@ router.post(
   upload.single("image"),
   generateProductImage
 );
+router.post("/generate-description", protect, generateProductDescription);
 
 module.exports = router;
