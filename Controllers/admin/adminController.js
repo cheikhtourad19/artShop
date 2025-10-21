@@ -1,4 +1,5 @@
 const User = require("../../Models/User");
+const Product = require("../../Models/Product");
 const validator = require("validator");
 
 const deleteUser = async (req, res) => {
@@ -98,10 +99,93 @@ const loadUserInfo = async (req, res) => {
   });
 };
 
+const getStat = async (req, res) => {
+  try {
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const totalUsers = await User.countDocuments();
+
+    const newUsersThisMonth = await User.countDocuments({
+      createdAt: { $gte: firstDayOfMonth },
+    });
+
+    const totalProducts = await Product.countDocuments();
+
+    const newProductsThisMonth = await Product.countDocuments({
+      createdAt: { $gte: firstDayOfMonth },
+    });
+
+    const firstDayOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1
+    );
+    const firstDayOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const usersLastMonth = await User.countDocuments({
+      createdAt: {
+        $gte: firstDayOfLastMonth,
+        $lt: firstDayOfThisMonth,
+      },
+    });
+
+    const productsLastMonth = await Product.countDocuments({
+      createdAt: {
+        $gte: firstDayOfLastMonth,
+        $lt: firstDayOfThisMonth,
+      },
+    });
+
+    const userGrowth =
+      usersLastMonth > 0
+        ? (
+            ((newUsersThisMonth - usersLastMonth) / usersLastMonth) *
+            100
+          ).toFixed(2)
+        : 100;
+
+    const productGrowth =
+      productsLastMonth > 0
+        ? (
+            ((newProductsThisMonth - productsLastMonth) / productsLastMonth) *
+            100
+          ).toFixed(2)
+        : 100;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        users: {
+          total: totalUsers,
+          newThisMonth: newUsersThisMonth,
+          lastMonth: usersLastMonth,
+          growth: `${userGrowth}%`,
+        },
+        products: {
+          total: totalProducts,
+          newThisMonth: newProductsThisMonth,
+          lastMonth: productsLastMonth,
+          growth: `${productGrowth}%`,
+        },
+        date: now.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching statistics",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   deleteUser,
   getAllUsers,
   editUserInfo,
   editPassword,
   loadUserInfo,
+  getStat,
 };
