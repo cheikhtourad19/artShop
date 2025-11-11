@@ -129,7 +129,7 @@ async function deleteProduct(req, res) {
 }
 async function getProducts(req, res) {
   try {
-    const products = await Product.find();
+    const products = await Product.find().sort({ createdAt: -1 });
     res.json({ success: true, products });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -148,7 +148,9 @@ async function getProduct(req, res) {
 async function getProductByUser(req, res) {
   try {
     const id = req.params.id;
-    const products = await Product.find({ artisan: id });
+    const products = await Product.find({ artisan: id }).sort({
+      createdAt: -1,
+    });
     res.json({ success: true, products: products });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

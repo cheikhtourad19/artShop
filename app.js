@@ -9,13 +9,14 @@ var authRouter = require("./routes/authRoutes");
 var adminRouter = require("./routes/adminRoutes");
 var productController = require("./routes/productRoutes");
 var aiRouter = require("./routes/aiRoutes");
+var livreruRouter = require("./routes/livreurRoutes");
 
 var app = express();
 
 // ✅ Apply cors BEFORE routes
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -34,6 +35,7 @@ app.use("/api/users", userRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/products", productController);
 app.use("/api/ai", aiRouter);
+app.use("/api/livreur", livreruRouter);
 // catch 404
 app.use(function (req, res, next) {
   next(createError(404));

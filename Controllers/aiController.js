@@ -38,7 +38,7 @@ const generateProductDescription = async (req, res) => {
       Règles à suivre:
       1. La description doit être en français courant et professionnel
       2. Structure: Commence par un accroche percutante, puis les caractéristiques principales, avantages, et appel à l'action
-      3. Longueur: 150-250 mots maximum
+      3. Longueur: 90-250 mots maximum
       4. Ton: Convaincant mais honnête, orienté vers les bénéfices client
       5. Inclure des mots-clés pertinents pour le référencement
       6. Mettre en valeur les points forts du produit
@@ -108,7 +108,6 @@ const generateProductImage = async (req, res) => {
       return res.status(400).json({ error: "No image file provided" });
     }
 
-    // Upload to Cloudinary first
     const uploadResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         { folder: "product-enhancement" },
@@ -122,7 +121,7 @@ const generateProductImage = async (req, res) => {
 
     const enhancedUrl = cloudinary.url(uploadResult.public_id, {
       effect:
-        "gen_background_replace:prompt_professional product photography studio",
+        "gen_background_replace:prompt_elegant product photography studio with soft box lighting and gradient backdrop",
       quality: "auto:best",
       fetch_format: "auto",
     });
