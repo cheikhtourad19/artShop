@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "supervisor ./bin/www"
+    "start": "node ./bin/www",
+    "build": ""
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

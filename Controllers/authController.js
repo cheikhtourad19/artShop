@@ -13,7 +13,15 @@ const generateToken = (id) => {
 
 const register = async (req, res) => {
   try {
-    const { nom, prenom, phone, email, password, isAdmin = false } = req.body;
+    const {
+      nom,
+      prenom,
+      phone,
+      email,
+      password,
+      isAdmin = false,
+      isLivreur = false,
+    } = req.body;
 
     if (!nom || !prenom || !email || !password || !phone) {
       return res.status(400).json({ msg: "Please enter all required fields" });
@@ -46,19 +54,14 @@ const register = async (req, res) => {
       email: email.toLowerCase(),
       password,
       isAdmin,
+      isLivreur,
     });
 
     await newUser.save();
 
     res.status(201).json({
       msg: "User registered successfully",
-      user: {
-        id: newUser._id,
-        nom: newUser.nom,
-        prenom: newUser.prenom,
-        email: newUser.email,
-        isAdmin: newUser.isAdmin,
-      },
+      newUser,
     });
   } catch (err) {
     console.error("Registration error:", err);
@@ -77,7 +80,8 @@ const login = async (req, res) => {
     if (!validator.isEmail(email)) {
       return res.status(400).json({ msg: "Please enter a valid email" });
     }
-
+    console.log("EMAIL:", email);
+    console.log("PASSWORD:", password);
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(401).json({ msg: "Invalid credentials" });
@@ -90,13 +94,7 @@ const login = async (req, res) => {
 
     res.status(200).json({
       msg: "Login successful",
-      user: {
-        id: user._id,
-        nom: user.nom,
-        prenom: user.prenom,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      },
+      user,
       token: generateToken(user._id),
     });
   } catch (err) {

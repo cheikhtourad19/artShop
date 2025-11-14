@@ -35,7 +35,7 @@ app.use("/api/users", userRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/products", productController);
 app.use("/api/ai", aiRouter);
-app.use("/api/livreur", livreruRouter);
+// app.use("/api/livreur", livreruRouter);
 // catch 404
 app.use(function (req, res, next) {
   next(createError(404));
