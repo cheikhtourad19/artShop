@@ -1,6 +1,11 @@
 const cloudinary = require("cloudinary").v2;
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { InferenceClient } = require("@huggingface/inference");
+const Replicate = require("replicate");
 
+const replicate = new Replicate();
+
+const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -102,39 +107,103 @@ const generateProductDescription = async (req, res) => {
   }
 };
 
+// const generateProductImage = async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ error: "No image file provided" });
+//     }
+
+//     const uploadResult = await new Promise((resolve, reject) => {
+//       const uploadStream = cloudinary.uploader.upload_stream(
+//         { folder: "product-enhancement" },
+//         (error, result) => {
+//           if (error) reject(error);
+//           else resolve(result);
+//         }
+//       );
+//       uploadStream.end(req.file.buffer);
+//     });
+
+//     const enhancedUrl = cloudinary.url(uploadResult.public_id, {
+//       effect:
+//         "gen_background_replace:prompt_elegant product photography studio with soft box lighting and gradient backdrop",
+//       quality: "auto:best",
+//       fetch_format: "auto",
+//     });
+
+//     const response = await fetch(enhancedUrl);
+//     const imageBuffer = await response.arrayBuffer();
+
+//     res.setHeader("Content-Type", "image/jpeg");
+//     res.send(Buffer.from(imageBuffer));
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// const generateProductImage = async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ error: "No image file provided" });
+//     }
+
+//     // Convert buffer to Blob
+//     const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+
+//     const image = await client.imageToImage({
+//       model: "dx8152/Qwen-Image-Edit-2509-Fusion",
+//       inputs: blob,
+//       parameters: {
+//         prompt:
+//           "Transform this into a professional product photo with clean white background, studio lighting, perfect for e-commerce.",
+//       },
+//     });
+
+//     const arrayBuffer = await image.arrayBuffer();
+//     const imageBuffer = Buffer.from(arrayBuffer);
+
+//     res.setHeader("Content-Type", "image/jpeg");
+//     res.send(imageBuffer);
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 const generateProductImage = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No image file provided" });
     }
 
-    const uploadResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: "product-enhancement" },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      uploadStream.end(req.file.buffer);
-    });
+    // First, upload the image to a temporary location or convert to base64
+    // Since Replicate needs a URL, we'll use base64 data URL
+    const base64Image = req.file.buffer.toString("base64");
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
 
-    const enhancedUrl = cloudinary.url(uploadResult.public_id, {
-      effect:
-        "gen_background_replace:prompt_elegant product photography studio with soft box lighting and gradient backdrop",
-      quality: "auto:best",
-      fetch_format: "auto",
-    });
+    const input = {
+      image: imageUrl,
+      prompt:
+        "Transform this into a professional product photo with clean white background, studio lighting, perfect for e-commerce",
+      output_quality: 80,
+    };
 
-    const response = await fetch(enhancedUrl);
-    const imageBuffer = await response.arrayBuffer();
+    const output = await replicate.run("qwen/qwen-image-edit", { input });
 
-    res.setHeader("Content-Type", "image/jpeg");
+    // Get the generated image URL
+    const generatedImageUrl = output[0];
+
+    // Fetch the generated image
+    const imageResponse = await fetch(generatedImageUrl);
+    const imageBuffer = await imageResponse.arrayBuffer();
+
+    // Send the image back in the response
+    res.setHeader("Content-Type", "image/webp");
     res.send(Buffer.from(imageBuffer));
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
-
 module.exports = { generateProductImage, generateProductDescription };
