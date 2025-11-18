@@ -171,38 +171,99 @@ const generateProductDescription = async (req, res) => {
 //   }
 // };
 
+const endpointUrl = "https://modelslab.com/api/v7/images/image-to-image";
+
 const generateProductImage = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No image file provided" });
     }
 
-    // First, upload the image to a temporary location or convert to base64
-    // Since Replicate needs a URL, we'll use base64 data URL
-    const base64Image = req.file.buffer.toString("base64");
-    const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+    // Debug: Check if API key exists
+    if (!process.env.MODELSLAB_API_KEY) {
+      throw new Error("MODELSLAB_API_KEY environment variable is not set");
+    }
 
-    const input = {
-      image: imageUrl,
+    console.log(
+      "API Key exists:",
+      process.env.MODELSLAB_API_KEY ? "Yes" : "No"
+    );
+
+    const base64Image = req.file.buffer.toString("base64");
+    const dataUrl = `data:image/jpeg;base64,${base64Image}`;
+
+    const requestBody = {
+      key: process.env.MODELSLAB_API_KEY,
+      model_id: "seedream-4.0-i2i",
       prompt:
-        "Transform this into a professional product photo with clean white background, studio lighting, perfect for e-commerce",
-      output_quality: 80,
+        "professional product photography, clean white background, studio lighting",
+      init_image: dataUrl,
+      samples: 1,
+      num_inference_steps: 20,
+      guidance_scale: 7.5,
+      strength: 0.7,
     };
 
-    const output = await replicate.run("qwen/qwen-image-edit", { input });
+    console.log("Request body (without key):", {
+      ...requestBody,
+      key: "***HIDDEN***",
+    });
 
-    // Get the generated image URL
-    const generatedImageUrl = output[0];
+    const response = await fetch(
+      "https://modelslab.com/api/v7/images/image-to-image",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      }
+    );
 
-    // Fetch the generated image
-    const imageResponse = await fetch(generatedImageUrl);
-    const imageBuffer = await imageResponse.arrayBuffer();
+    console.log("Response status:", response.status);
 
-    // Send the image back in the response
-    res.setHeader("Content-Type", "image/webp");
-    res.send(Buffer.from(imageBuffer));
+    const result = await response.json();
+    console.log("Full API Response:", result);
+
+    if (result.status === "success") {
+      // Download and return the image
+      const imageResponse = await fetch(result.output[0]);
+      const imageBuffer = await imageResponse.arrayBuffer();
+
+      res.setHeader("Content-Type", "image/jpeg");
+      res.send(Buffer.from(imageBuffer));
+    } else {
+      throw new Error(result.message || "Unknown error from API");
+    }
   } catch (error) {
     console.error("Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Optional: Function to check processing status
+const checkGenerationStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const response = await fetch(
+      `https://modelslab.com/api/v7/images/status/${id}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Status check failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    res.json(result);
+  } catch (error) {
+    console.error("Status check error:", error);
     res.status(500).json({ error: error.message });
   }
 };
