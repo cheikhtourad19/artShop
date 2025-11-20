@@ -7,6 +7,10 @@ const ProfileSchema = new mongoose.Schema({
     required: true,
   },
   bio: { type: String, default: "" },
+  image: {
+    url: String,
+    public_id: String,
+  },
 });
 
 module.exports = mongoose.model("Profile", ProfileSchema);

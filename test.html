@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Test Upload</title>
+  </head>
+  <body>
+    <h2>Test Profile Picture Upload</h2>
+
+    <input type="file" id="image" accept="image/*" /><br /><br />
+
+    <button onclick="upload()">Upload</button>
+
+    <p id="result"></p>
+
+    <script>
+      async function upload() {
+        const file = document.getElementById("image").files[0];
+        const result = document.getElementById("result");
+
+        if (!file) {
+          result.innerText = "Please choose a file";
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", file); // must match your multer field name
+
+        try {
+          const res = await fetch(
+            "http://localhost:9000/api/users/profile/picture",
+            {
+              method: "PUT",
+              headers: {
+                Authorization:
+                  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZDU3MmI2M2VkMjcyNzYzOTM0NWNjZSIsImlhdCI6MTc2MzY1MzcwNywiZXhwIjoxNzY2MjQ1NzA3fQ.maNa6OUC5p9MsNg1jvQmJrpkG3PkswkRipCUNqLVIIE",
+              },
+              body: formData,
+            }
+          );
+
+          const data = await res.json();
+          result.innerText = JSON.stringify(data, null, 2);
+        } catch (err) {
+          result.innerText = "Error: " + err;
+        }
+      }
+    </script>
+  </body>
+</html>
