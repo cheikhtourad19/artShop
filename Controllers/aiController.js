@@ -2,7 +2,8 @@ const cloudinary = require("cloudinary").v2;
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { InferenceClient } = require("@huggingface/inference");
 const Replicate = require("replicate");
-
+const { GoogleGenAI } = require("@google/genai");
+const mime = require("mime");
 const replicate = new Replicate();
 
 const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
@@ -179,65 +180,97 @@ const generateProductImage = async (req, res) => {
       return res.status(400).json({ error: "No image file provided" });
     }
 
-    // Debug: Check if API key exists
-    if (!process.env.MODELSLAB_API_KEY) {
-      throw new Error("MODELSLAB_API_KEY environment variable is not set");
+    // Check if API key exists
+    if (!process.env.GOOGLE_AI_API_KEY) {
+      throw new Error("GEMINI_API_KEY environment variable is not set");
     }
 
     console.log(
       "API Key exists:",
-      process.env.MODELSLAB_API_KEY ? "Yes" : "No"
+      process.env.GOOGLE_AI_API_KEY ? "Yes" : "No"
     );
 
-    const base64Image = req.file.buffer.toString("base64");
-    const dataUrl = `data:image/jpeg;base64,${base64Image}`;
-
-    const requestBody = {
-      key: process.env.MODELSLAB_API_KEY,
-      model_id: "seedream-4.0-i2i",
-      prompt:
-        "professional product photography, clean white background, studio lighting",
-      init_image: dataUrl,
-      samples: 1,
-      num_inference_steps: 20,
-      guidance_scale: 7.5,
-      strength: 0.7,
-    };
-
-    console.log("Request body (without key):", {
-      ...requestBody,
-      key: "***HIDDEN***",
+    // Initialize Google GenAI
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GOOGLE_AI_API_KEY,
     });
 
-    const response = await fetch(
-      "https://modelslab.com/api/v7/images/image-to-image",
+    // Prepare the image data
+    const base64Image = req.file.buffer.toString("base64");
+    const mimeType = req.file.mimetype || "image/jpeg";
+
+    const config = {
+      responseModalities: ["IMAGE", "TEXT"],
+    };
+
+    const model = "gemini-2.5-flash-image";
+
+    const contents = [
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
+        role: "user",
+        parts: [
+          {
+            inlineData: {
+              mimeType: mimeType,
+              data: base64Image,
+            },
+          },
+          {
+            text: "Transform this into professional product photography with clean white background and studio lighting. Generate only the enhanced product image.",
+          },
+        ],
+      },
+    ];
+
+    console.log("Sending request to Gemini API...");
+
+    const response = await ai.models.generateContentStream({
+      model,
+      config,
+      contents,
+    });
+
+    let imageGenerated = false;
+    let imageBuffer = null;
+    let textResponse = "";
+
+    // Process the streaming response
+    for await (const chunk of response) {
+      if (
+        !chunk.candidates ||
+        !chunk.candidates[0].content ||
+        !chunk.candidates[0].content.parts
+      ) {
+        continue;
       }
-    );
 
-    console.log("Response status:", response.status);
+      // Check for image data
+      if (chunk.candidates?.[0]?.content?.parts?.[0]?.inlineData) {
+        const inlineData = chunk.candidates[0].content.parts[0].inlineData;
+        imageBuffer = Buffer.from(inlineData.data || "", "base64");
+        imageGenerated = true;
+        console.log("Image generated successfully");
+      }
+      // Collect text responses
+      else if (chunk.text) {
+        textResponse += chunk.text;
+        console.log("Text chunk:", chunk.text);
+      }
+    }
 
-    const result = await response.json();
-    console.log("Full API Response:", result);
-
-    if (result.status === "success") {
-      // Download and return the image
-      const imageResponse = await fetch(result.output[0]);
-      const imageBuffer = await imageResponse.arrayBuffer();
-
+    // Send the generated image back to the client
+    if (imageGenerated && imageBuffer) {
       res.setHeader("Content-Type", "image/jpeg");
-      res.send(Buffer.from(imageBuffer));
+      res.send(imageBuffer);
     } else {
-      throw new Error(result.message || "Unknown error from API");
+      throw new Error("No image was generated. Response: " + textResponse);
     }
   } catch (error) {
     console.error("Error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+      details: "Failed to generate product image with Gemini API",
+    });
   }
 };
 
