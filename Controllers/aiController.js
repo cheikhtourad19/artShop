@@ -3,8 +3,6 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { InferenceClient } = require("@huggingface/inference");
 const Replicate = require("replicate");
 const { GoogleGenAI } = require("@google/genai");
-const mime = require("mime");
-const replicate = new Replicate();
 
 const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
 cloudinary.config({
