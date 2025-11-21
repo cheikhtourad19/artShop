@@ -16,6 +16,7 @@ var port = normalizePort(process.env.PORT || "9000");
 app.set("port", port);
 
 require("dotenv").config();
+console.log("MONGODB_URI exists:", !!process.env.MONGODB_URI);
 const connectDB = require("../config/db");
 
 // Connect to MongoDB
