@@ -1,4 +1,5 @@
 const User = require("../Models/User");
+const Profile = require("../Models/Profile");
 const Product = require("../Models/Product");
 const { cloudinary } = require("../config/cloudinary");
 require("dotenv").config();
@@ -140,7 +141,8 @@ async function getProduct(req, res) {
     const id = req.params.id;
     const product = await Product.findById(id);
     const artisan = await User.findById(product.artisan);
-    res.json({ success: true, product: product, artisan: artisan });
+    const bio = await Profile.findOne({ user: artisan._id });
+    res.json({ success: true, product: product, artisan: artisan, bio: bio });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
