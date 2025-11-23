@@ -1,11 +1,11 @@
 const User = require("../Models/User");
+const Profile = require("../Models/Profile"); // Add this import
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
 const Reset = require("../Models/Reset");
 const crypto = require("crypto");
 const transporter = require("../utils/sendEmail");
 require("dotenv").config();
-// path to transporter
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
@@ -103,6 +103,125 @@ const login = async (req, res) => {
   }
 };
 
+// Google Sign-In with Profile Picture
+const googleAuth = async (req, res) => {
+  try {
+    const { email, fullName, profilePicture } = req.body;
+
+    // Validate required fields
+    if (!email || !fullName) {
+      return res.status(400).json({
+        success: false,
+        msg: "Missing required fields",
+      });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        msg: "Please enter a valid email",
+      });
+    }
+
+    // Check if user exists
+    let user = await User.findOne({ email: email.toLowerCase() });
+    let isNewUser = false;
+
+    if (!user) {
+      // Create new user with Google data
+      user = new User({
+        nom: fullName.trim(),
+        prenom: fullName.trim(),
+        email: email.toLowerCase(),
+        phone: "From Google", // Default phone
+        password: "GoogleUser12345678", // Default password for Google users
+        isAdmin: false,
+        isLivreur: false,
+      });
+
+      await user.save();
+      isNewUser = true;
+
+      // Create profile for the new user
+      const newProfile = new Profile({
+        user: user._id,
+        bio: "",
+        image: profilePicture
+          ? {
+              url: profilePicture,
+              public_id: "google_profile", // Since it's from Google, not from your storage
+            }
+          : undefined,
+      });
+
+      await newProfile.save();
+      await transporter.sendMail({
+        from: `"Support" <${process.env.EMAIL_USER}>`,
+        to: user.email,
+        subject: "Votre compte a été créé avec succès",
+        html: `
+        <p>Bonjour ${user.nom || ""},</p>
+        <p>Votre compte a été créé avec succès et votre mot passe par defaut est GoogleUser12345678 veiller le changer vite </p>
+        
+      `,
+      });
+
+      console.log("New Google user created:", user.email);
+    } else {
+      // User exists, check if profile exists
+      let profile = await Profile.findOne({ user: user._id });
+
+      if (!profile) {
+        // Create profile if it doesn't exist
+        profile = new Profile({
+          user: user._id,
+          bio: "Signed up with Google",
+          image: profilePicture
+            ? {
+                url: profilePicture,
+                public_id: "google_profile",
+              }
+            : undefined,
+        });
+        await profile.save();
+      } else if (profilePicture && !profile.image) {
+        // Update profile with Google picture if it doesn't have one
+        profile.image = {
+          url: profilePicture,
+          public_id: "google_profile",
+        };
+        await profile.save();
+      }
+    }
+
+    // Generate JWT token (same as regular login)
+    const token = generateToken(user._id);
+
+    res.status(200).json({
+      success: true,
+      msg: isNewUser ? "Account created successfully" : "Login successful",
+      token: token,
+      user: {
+        _id: user._id,
+        email: user.email,
+        nom: user.nom,
+        prenom: user.prenom,
+        phone: user.phone,
+        isAdmin: user.isAdmin,
+        isLivreur: user.isLivreur,
+      },
+      isNewUser: isNewUser,
+    });
+  } catch (err) {
+    console.error("Google auth error:", err);
+    res.status(500).json({
+      success: false,
+      msg: "Server error during Google authentication",
+      error: err.message,
+    });
+  }
+};
+
 const getResetToken = async (req, res) => {
   try {
     const { email } = req.body;
@@ -186,4 +305,4 @@ const reset = async (req, res) => {
   res.status(200).json({ msg: "Mot de passe réinitialisé avec succès" });
 };
 
-module.exports = { register, login, getResetToken, reset };
+module.exports = { register, login, googleAuth, getResetToken, reset };

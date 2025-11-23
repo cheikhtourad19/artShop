@@ -23,12 +23,18 @@ const loadBio = async (req, res) => {
     const id = req.params.id;
     const user = await User.findById(id);
     const profile = await Profile.findOne({ user: user._id });
+    if (!profile) {
+      return res.status(404).json({ msg: "Profile not found" });
+    }
     res.status(200).json({
       user: profile.user,
       bio: profile.bio,
       image: profile.image,
     });
-  } catch (error) {}
+  } catch (error) {
+    console.error("Load bio error:", error);
+    res.status(500).json({ msg: "Server error while loading bio" });
+  }
 };
 
 const editUserPicture = async (req, res) => {
@@ -157,6 +163,28 @@ const editPassword = async (req, res) => {
   }
 };
 
+const loadPublicUserInfo = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const user = await User.findById(id).select("-password");
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+    res.status(200).json({
+      user: {
+        id: user._id,
+        nom: user.nom,
+        prenom: user.prenom,
+        email: user.email,
+        phone: user.phone,
+      },
+    });
+  } catch (error) {
+    console.error("Load public user info error:", error);
+    res.status(500).json({ msg: "Server error while loading user info" });
+  }
+};
+
 module.exports = {
   loadUserInfo,
   editUserInfo,
@@ -164,4 +192,5 @@ module.exports = {
   editUserBio,
   editUserPicture,
   loadBio,
+  loadPublicUserInfo,
 };

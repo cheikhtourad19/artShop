@@ -6,6 +6,7 @@ const {
   editUserBio,
   editUserPicture,
   loadBio,
+  loadPublicUserInfo,
 } = require("../Controllers/userController");
 const { protect } = require("../Middlewares/authMiddleware");
 const multer = require("multer");
@@ -17,6 +18,8 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 router.get("/profile", protect, loadUserInfo);
+
+router.get("/profile/:id", loadPublicUserInfo);
 
 router.get("/profile/bio/:id", loadBio);
 router.put("/profile", protect, editUserInfo);
