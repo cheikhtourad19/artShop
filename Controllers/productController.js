@@ -1,6 +1,7 @@
 const User = require("../Models/User");
 const Profile = require("../Models/Profile");
 const Product = require("../Models/Product");
+const transporter = require("../utils/sendEmail");
 const { cloudinary } = require("../config/cloudinary");
 require("dotenv").config();
 async function addProduct(req, res) {
@@ -74,6 +75,35 @@ async function addProduct(req, res) {
         process.env.NODE_ENV === "development"
           ? error.message
           : "Internal server error",
+    });
+  }
+}
+
+async function sendEmail(req, res) {
+  try {
+    const { email, subject, message } = req.body;
+    await transporter.sendMail({
+      from: `"Support" <${process.env.EMAIL_USER}>`,
+      to: "elghothvadel@gmail.com",
+      subject: subject,
+      html: `
+        <p>Bonjour Admin,</p>
+        <p>Vous venez de recevoir un feedback de ${email}</p>
+        <p>Message:</p>
+        <p>${message}</p>
+        <br/>
+        <p>Cordialement,</p>
+        <p>Votre équipe de support</p>
+      `,
+    });
+    res.status(200).json({
+      success: true,
+      message: "Email sent successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 }
@@ -165,4 +195,5 @@ module.exports = {
   getProduct,
   getProducts,
   getProductByUser,
+  sendEmail,
 };

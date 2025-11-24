@@ -7,6 +7,7 @@ const {
   getProduct,
   getProducts,
   getProductByUser,
+  sendEmail,
 } = require("../Controllers/productController");
 const upload = require("../config/multer");
 
@@ -16,5 +17,6 @@ router.delete("/deleteproduct/:id", protect, deleteProduct);
 router.get("/getproduct/:id", getProduct);
 router.get("/getproducts", getProducts);
 router.get("/getproduct_by_user/:id", getProductByUser);
+router.post("/email", sendEmail);
 
 module.exports = router;
