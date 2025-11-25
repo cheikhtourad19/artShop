@@ -106,40 +106,40 @@ const generateProductDescription = async (req, res) => {
   }
 };
 
-// const generateProductImage = async (req, res) => {
-//   try {
-//     if (!req.file) {
-//       return res.status(400).json({ error: "No image file provided" });
-//     }
+const generateProductImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
 
-//     const uploadResult = await new Promise((resolve, reject) => {
-//       const uploadStream = cloudinary.uploader.upload_stream(
-//         { folder: "product-enhancement" },
-//         (error, result) => {
-//           if (error) reject(error);
-//           else resolve(result);
-//         }
-//       );
-//       uploadStream.end(req.file.buffer);
-//     });
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: "product-enhancement" },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      uploadStream.end(req.file.buffer);
+    });
 
-//     const enhancedUrl = cloudinary.url(uploadResult.public_id, {
-//       effect:
-//         "gen_background_replace:prompt_elegant product photography studio with soft box lighting and gradient backdrop",
-//       quality: "auto:best",
-//       fetch_format: "auto",
-//     });
+    const enhancedUrl = cloudinary.url(uploadResult.public_id, {
+      effect:
+        "gen_background_replace:prompt_elegant product photography studio with soft box lighting and gradient backdrop",
+      quality: "auto:best",
+      fetch_format: "auto",
+    });
 
-//     const response = await fetch(enhancedUrl);
-//     const imageBuffer = await response.arrayBuffer();
+    const response = await fetch(enhancedUrl);
+    const imageBuffer = await response.arrayBuffer();
 
-//     res.setHeader("Content-Type", "image/jpeg");
-//     res.send(Buffer.from(imageBuffer));
-//   } catch (error) {
-//     console.error("Error:", error);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
+    res.setHeader("Content-Type", "image/jpeg");
+    res.send(Buffer.from(imageBuffer));
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // const generateProductImage = async (req, res) => {
 //   try {
@@ -170,107 +170,105 @@ const generateProductDescription = async (req, res) => {
 //   }
 // };
 
-const endpointUrl = "https://modelslab.com/api/v7/images/image-to-image";
+// // const generateProductImage = async (req, res) => {
+// //   try {
+// //     if (!req.file) {
+// //       return res.status(400).json({ error: "No image file provided" });
+// //     }
 
-const generateProductImage = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No image file provided" });
-    }
+// //     // Check if API key exists
+// //     if (!process.env.GOOGLE_AI_API_KEY) {
+// //       throw new Error("GEMINI_API_KEY environment variable is not set");
+// //     }
 
-    // Check if API key exists
-    if (!process.env.GOOGLE_AI_API_KEY) {
-      throw new Error("GEMINI_API_KEY environment variable is not set");
-    }
+// //     console.log(
+// //       "API Key exists:",
+// //       process.env.GOOGLE_AI_API_KEY ? "Yes" : "No"
+// //     );
 
-    console.log(
-      "API Key exists:",
-      process.env.GOOGLE_AI_API_KEY ? "Yes" : "No"
-    );
+// //     // Initialize Google GenAI
+// //     const ai = new GoogleGenAI({
+// //       apiKey: process.env.GOOGLE_AI_API_KEY,
+// //     });
 
-    // Initialize Google GenAI
-    const ai = new GoogleGenAI({
-      apiKey: process.env.GOOGLE_AI_API_KEY,
-    });
+// //     // Prepare the image data
+// //     const base64Image = req.file.buffer.toString("base64");
+// //     const mimeType = req.file.mimetype || "image/jpeg";
 
-    // Prepare the image data
-    const base64Image = req.file.buffer.toString("base64");
-    const mimeType = req.file.mimetype || "image/jpeg";
+// //     const config = {
+// //       responseModalities: ["IMAGE", "TEXT"],
+// //     };
 
-    const config = {
-      responseModalities: ["IMAGE", "TEXT"],
-    };
+// //     const model = "gemini-2.5-flash-image";
 
-    const model = "gemini-2.5-flash-image";
+// //     const contents = [
+// //       {
+// //         role: "user",
+// //         parts: [
+// //           {
+// //             inlineData: {
+// //               mimeType: mimeType,
+// //               data: base64Image,
+// //             },
+// //           },
+// //           {
+// //             text: "Transform this into professional product photography with clean white background and studio lighting. Generate only the enhanced product image.",
+// //           },
+// //         ],
+// //       },
+// //     ];
 
-    const contents = [
-      {
-        role: "user",
-        parts: [
-          {
-            inlineData: {
-              mimeType: mimeType,
-              data: base64Image,
-            },
-          },
-          {
-            text: "Transform this into professional product photography with clean white background and studio lighting. Generate only the enhanced product image.",
-          },
-        ],
-      },
-    ];
+//     console.log("Sending request to Gemini API...");
 
-    console.log("Sending request to Gemini API...");
+//     const response = await ai.models.generateContentStream({
+//       model,
+//       config,
+//       contents,
+//     });
 
-    const response = await ai.models.generateContentStream({
-      model,
-      config,
-      contents,
-    });
+//     let imageGenerated = false;
+//     let imageBuffer = null;
+//     let textResponse = "";
 
-    let imageGenerated = false;
-    let imageBuffer = null;
-    let textResponse = "";
+//     // Process the streaming response
+//     for await (const chunk of response) {
+//       if (
+//         !chunk.candidates ||
+//         !chunk.candidates[0].content ||
+//         !chunk.candidates[0].content.parts
+//       ) {
+//         continue;
+//       }
 
-    // Process the streaming response
-    for await (const chunk of response) {
-      if (
-        !chunk.candidates ||
-        !chunk.candidates[0].content ||
-        !chunk.candidates[0].content.parts
-      ) {
-        continue;
-      }
+//       // Check for image data
+//       if (chunk.candidates?.[0]?.content?.parts?.[0]?.inlineData) {
+//         const inlineData = chunk.candidates[0].content.parts[0].inlineData;
+//         imageBuffer = Buffer.from(inlineData.data || "", "base64");
+//         imageGenerated = true;
+//         console.log("Image generated successfully");
+//       }
+//       // Collect text responses
+//       else if (chunk.text) {
+//         textResponse += chunk.text;
+//         console.log("Text chunk:", chunk.text);
+//       }
+//     }
 
-      // Check for image data
-      if (chunk.candidates?.[0]?.content?.parts?.[0]?.inlineData) {
-        const inlineData = chunk.candidates[0].content.parts[0].inlineData;
-        imageBuffer = Buffer.from(inlineData.data || "", "base64");
-        imageGenerated = true;
-        console.log("Image generated successfully");
-      }
-      // Collect text responses
-      else if (chunk.text) {
-        textResponse += chunk.text;
-        console.log("Text chunk:", chunk.text);
-      }
-    }
-
-    // Send the generated image back to the client
-    if (imageGenerated && imageBuffer) {
-      res.setHeader("Content-Type", "image/jpeg");
-      res.send(imageBuffer);
-    } else {
-      throw new Error("No image was generated. Response: " + textResponse);
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({
-      error: error.message,
-      details: "Failed to generate product image with Gemini API",
-    });
-  }
-};
+//     // Send the generated image back to the client
+//     if (imageGenerated && imageBuffer) {
+//       res.setHeader("Content-Type", "image/jpeg");
+//       res.send(imageBuffer);
+//     } else {
+//       throw new Error("No image was generated. Response: " + textResponse);
+//     }
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).json({
+//       error: error.message,
+//       details: "Failed to generate product image with Gemini API",
+//     });
+//   }
+// };
 
 // Optional: Function to check processing status
 const checkGenerationStatus = async (req, res) => {

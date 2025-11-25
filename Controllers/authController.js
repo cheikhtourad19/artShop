@@ -181,7 +181,6 @@ const googleAuth = async (req, res) => {
         token: generateToken(user._id),
         isNewUser: true,
       });
-      return;
     } else {
       // User exists, check if profile exists
       let profile = await Profile.findOne({ user: user._id });
@@ -212,7 +211,7 @@ const googleAuth = async (req, res) => {
     // Generate JWT token (same as regular login)
     const token = generateToken(user._id);
 
-    res.status(200).json({
+    res.status(201).json({
       success: true,
       msg: isNewUser ? "Account created successfully" : "Login successful",
       token: token,
