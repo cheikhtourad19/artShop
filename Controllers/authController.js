@@ -166,7 +166,22 @@ const googleAuth = async (req, res) => {
       `,
       });
 
-      console.log("New Google user created:", user.email);
+      res.status(201).json({
+        success: true,
+        msg: "Account created successfully",
+        user: {
+          _id: user._id,
+          email: user.email,
+          nom: user.nom,
+          prenom: user.prenom,
+          phone: user.phone,
+          isAdmin: user.isAdmin,
+          isLivreur: user.isLivreur,
+        },
+        token: generateToken(user._id),
+        isNewUser: true,
+      });
+      return;
     } else {
       // User exists, check if profile exists
       let profile = await Profile.findOne({ user: user._id });
