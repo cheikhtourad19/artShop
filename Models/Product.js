@@ -16,7 +16,11 @@ const productSchema = new mongoose.Schema(
         url: String,
         public_id: String, // For Cloudinary
       },
-    ], // chemin ou URL
+    ],
+    category: {
+      type: String,
+      required: false,
+    },
   },
   { timestamps: true }
 );

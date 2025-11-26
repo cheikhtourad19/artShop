@@ -166,6 +166,33 @@ async function getProducts(req, res) {
     res.status(500).json({ success: false, message: error.message });
   }
 }
+async function getFilteredProducts(req, res) {
+  try {
+    const { minPrice, maxPrice, category, date } = req.query;
+
+    const filter = {};
+
+    // Price filter
+    if (minPrice) filter.price = { ...filter.price, $gte: Number(minPrice) };
+    if (maxPrice) filter.price = { ...filter.price, $lte: Number(maxPrice) };
+
+    // Category filter
+    if (category) filter.category = category;
+
+    // Date sorting
+    let sortBy = { createdAt: -1 }; // default: le plus récent
+
+    if (date === "dsc") sortBy = { createdAt: -1 }; // le plus récent
+    if (date === "asc") sortBy = { createdAt: 1 }; // le plus ancien
+
+    const products = await Product.find(filter).sort(sortBy);
+
+    res.json({ success: true, products });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+}
+
 async function getProduct(req, res) {
   try {
     const id = req.params.id;
@@ -196,4 +223,5 @@ module.exports = {
   getProducts,
   getProductByUser,
   sendEmail,
+  getFilteredProducts,
 };

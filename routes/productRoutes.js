@@ -8,6 +8,7 @@ const {
   getProducts,
   getProductByUser,
   sendEmail,
+  getFilteredProducts,
 } = require("../Controllers/productController");
 const upload = require("../config/multer");
 
@@ -18,5 +19,5 @@ router.get("/getproduct/:id", getProduct);
 router.get("/getproducts", getProducts);
 router.get("/getproduct_by_user/:id", getProductByUser);
 router.post("/email", sendEmail);
-
+router.get("/", getFilteredProducts);
 module.exports = router;
