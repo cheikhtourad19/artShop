@@ -4,6 +4,7 @@ const { InferenceClient } = require("@huggingface/inference");
 const Replicate = require("replicate");
 const { GoogleGenAI } = require("@google/genai");
 
+const axios = require("axios");
 const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -106,40 +107,40 @@ const generateProductDescription = async (req, res) => {
   }
 };
 
-const generateProductImage = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No image file provided" });
-    }
+// const generateProductImage = async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ error: "No image file provided" });
+//     }
 
-    const uploadResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: "product-enhancement" },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      uploadStream.end(req.file.buffer);
-    });
+//     const uploadResult = await new Promise((resolve, reject) => {
+//       const uploadStream = cloudinary.uploader.upload_stream(
+//         { folder: "product-enhancement" },
+//         (error, result) => {
+//           if (error) reject(error);
+//           else resolve(result);
+//         }
+//       );
+//       uploadStream.end(req.file.buffer);
+//     });
 
-    const enhancedUrl = cloudinary.url(uploadResult.public_id, {
-      effect:
-        "gen_background_replace:prompt_elegant product photography studio with soft box lighting and gradient backdrop",
-      quality: "auto:best",
-      fetch_format: "auto",
-    });
+//     const enhancedUrl = cloudinary.url(uploadResult.public_id, {
+//       effect:
+//         "gen_background_replace:prompt_elegant product photography studio with soft box lighting and gradient backdrop",
+//       quality: "auto:best",
+//       fetch_format: "auto",
+//     });
 
-    const response = await fetch(enhancedUrl);
-    const imageBuffer = await response.arrayBuffer();
+//     const response = await fetch(enhancedUrl);
+//     const imageBuffer = await response.arrayBuffer();
 
-    res.setHeader("Content-Type", "image/jpeg");
-    res.send(Buffer.from(imageBuffer));
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ error: error.message });
-  }
-};
+//     res.setHeader("Content-Type", "image/jpeg");
+//     res.send(Buffer.from(imageBuffer));
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
 
 // const generateProductImage = async (req, res) => {
 //   try {
@@ -271,29 +272,148 @@ const generateProductImage = async (req, res) => {
 // };
 
 // Optional: Function to check processing status
-const checkGenerationStatus = async (req, res) => {
+const synthesizeImage = async (prompt, images, options = {}) => {
   try {
-    const { id } = req.params;
+    if (!DASHSCOPE_API_KEY) {
+      throw new Error("DASHSCOPE_API_KEY is not set in environment variables");
+    }
 
-    const response = await fetch(
-      `https://modelslab.com/api/v7/images/status/${id}`,
+    const requestBody = {
+      model: options.model || "wan2.5-i2i-preview",
+      input: {
+        prompt: prompt,
+        images: images,
+        negative_prompt: options.negativePrompt || "",
+      },
+      parameters: {
+        n: options.n || 1,
+        seed: options.seed || Math.floor(Math.random() * 100000),
+        watermark: options.watermark !== undefined ? options.watermark : false,
+      },
+    };
+
+    // Add size if specified
+    if (options.size) {
+      requestBody.parameters.size = options.size;
+    }
+
+    console.log("Calling DashScope API with model:", requestBody.model);
+
+    const response = await axios.post(
+      `${DASHSCOPE_BASE_URL}/services/aigc/image-synthesis/generation`,
+      requestBody,
       {
-        method: "GET",
         headers: {
+          Authorization: `Bearer ${DASHSCOPE_API_KEY}`,
           "Content-Type": "application/json",
         },
       }
     );
 
-    if (!response.ok) {
-      throw new Error(`Status check failed: ${response.status}`);
-    }
-
-    const result = await response.json();
-    res.json(result);
+    return response.data;
   } catch (error) {
-    console.error("Status check error:", error);
-    res.status(500).json({ error: error.message });
+    console.error("DashScope API Error Details:", error.response?.data);
+    throw new Error(
+      `DashScope API Error: ${error.response?.data?.message || error.message}`
+    );
   }
 };
+
+/**
+ * Download image from URL
+ */
+const downloadImage = async (imageUrl) => {
+  const response = await axios.get(imageUrl, {
+    responseType: "arraybuffer",
+  });
+  return Buffer.from(response.data);
+};
+
+const generateProductImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+
+    if (!DASHSCOPE_API_KEY) {
+      throw new Error("DASHSCOPE_API_KEY environment variable is not set");
+    }
+
+    // Convert uploaded file to base64
+    const imageBase64 = encodeBufferToBase64(
+      req.file.buffer,
+      req.file.mimetype
+    );
+
+    // For single image, you might want to use a different prompt
+    const prompt =
+      req.body.prompt ||
+      "Transform this into professional product photography with clean white background and studio lighting";
+
+    console.log("Enhancing product image with DashScope API...");
+
+    const result = await synthesizeImage(prompt, [imageBase64], {
+      model: "wan2.5-i2i-preview",
+      n: 1,
+      watermark: false,
+    });
+
+    if (
+      result.output &&
+      result.output.results &&
+      result.output.results.length > 0
+    ) {
+      const imageUrl = result.output.results[0].url;
+      const imageBuffer = await downloadImage(imageUrl);
+
+      res.setHeader("Content-Type", "image/jpeg");
+      res.send(imageBuffer);
+    } else {
+      throw new Error("No image was generated in the response");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: error.message,
+      details: "Failed to enhance product image with DashScope API",
+    });
+  }
+};
+
+const DASHSCOPE_BASE_URL = "https://dashscope-intl.aliyuncs.com/api/v1";
+const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY;
+/**
+ * Encode local file to base64 format
+ */
+const encodeFileToBase64 = (filePath) => {
+  const fileBuffer = fs.readFileSync(filePath);
+  const mimeType = getMimeType(filePath);
+  const base64Data = fileBuffer.toString("base64");
+  return `data:${mimeType};base64,${base64Data}`;
+};
+
+/**
+ * Encode buffer to base64 format
+ */
+const encodeBufferToBase64 = (buffer, mimeType) => {
+  const base64Data = buffer.toString("base64");
+  return `data:${mimeType};base64,${base64Data}`;
+};
+
+/**
+ * Get MIME type from file extension
+ */
+const getMimeType = (filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeTypes = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".bmp": "image/bmp",
+  };
+  return mimeTypes[ext] || "image/jpeg";
+};
+
 module.exports = { generateProductImage, generateProductDescription };
