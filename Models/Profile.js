@@ -11,6 +11,9 @@ const ProfileSchema = new mongoose.Schema({
     url: String,
     public_id: String,
   },
+  social:{
+    
+  }
 });
 
 module.exports = mongoose.model("Profile", ProfileSchema);

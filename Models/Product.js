@@ -21,6 +21,13 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    dimensions: {
+      type: String,
+      required: false,
+    },
+    promo: {
+      type: Number,
+    },
   },
   { timestamps: true }
 );

@@ -110,12 +110,34 @@ async function sendEmail(req, res) {
 async function editProduct(req, res) {
   try {
     const { id } = req.params;
-    const { title, description, price } = req.body;
+    const { title, description, price, promo, category, dimensions } = req.body;
     console.log(req.body);
     const user = req.user;
+
     const product = await Product.findById(id);
     if (user.isAdmin || product.artisan.equals(user._id)) {
-      await Product.findByIdAndUpdate(id, { title, description, price });
+      let updatedObject = {};
+      if (dimensions.trim() !== "") {
+        updatedObject = {
+          title,
+          description,
+          price,
+          promo,
+          category,
+          dimensions,
+        };
+      } else {
+        updatedObject = {
+          title,
+          description,
+          price,
+          promo,
+          category,
+        };
+      }
+
+      await Product.findByIdAndUpdate(id, updatedObject);
+
       res.status(200).json({
         success: true,
         message: "Product updated successfully",
