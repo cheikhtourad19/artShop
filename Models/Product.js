@@ -17,13 +17,14 @@ const productSchema = new mongoose.Schema(
         public_id: String, // For Cloudinary
       },
     ],
-    category: {
-      type: String,
-      required: false,
-    },
+    category: [
+      {
+        type: String,
+        required: false,
+      },
+    ],
     dimensions: {
       type: String,
-      required: false,
     },
     promo: {
       type: Number,

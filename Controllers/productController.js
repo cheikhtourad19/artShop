@@ -5,8 +5,9 @@ const transporter = require("../utils/sendEmail");
 const { cloudinary } = require("../config/cloudinary");
 require("dotenv").config();
 async function addProduct(req, res) {
+  console.log("Request body:", req.body);
   try {
-    const { title, description, price } = req.body;
+    const { title, description, price, categories, dimensions } = req.body;
     const user = req.user._id;
 
     // Validate required fields
@@ -35,6 +36,24 @@ async function addProduct(req, res) {
       });
     }
 
+    // Parse categories from JSON string
+    let categoryArray = [];
+    if (categories) {
+      try {
+        categoryArray =
+          typeof categories === "string" ? JSON.parse(categories) : categories;
+
+        // Ensure it's an array
+        if (!Array.isArray(categoryArray)) {
+          categoryArray = [categoryArray];
+        }
+      } catch (parseError) {
+        console.error("Error parsing categories:", parseError);
+        // If parsing fails, treat as single category
+        categoryArray = [categories];
+      }
+    }
+
     let images = [];
     if (req.files && req.files.length > 0) {
       images = req.files.map((file) => ({
@@ -49,12 +68,22 @@ async function addProduct(req, res) {
       description: description.trim(),
       price: parseFloat(price),
       images,
+      dimensions,
+      category: categoryArray, // Use the parsed array
     });
 
     await product.save();
+
+    console.log("Product saved with categories:", product.category);
+
     res.status(201).json({
       success: true,
       message: "Product added successfully",
+      product: {
+        _id: product._id,
+        title: product.title,
+        category: product.category,
+      },
     });
   } catch (error) {
     console.error("Error adding product:", error);
@@ -78,7 +107,6 @@ async function addProduct(req, res) {
     });
   }
 }
-
 async function sendEmail(req, res) {
   try {
     const { email, subject, message } = req.body;
@@ -180,17 +208,9 @@ async function deleteProduct(req, res) {
     });
   }
 }
-async function getProducts(req, res) {
-  try {
-    const products = await Product.find().sort({ createdAt: -1 });
-    res.json({ success: true, products });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-}
 async function getFilteredProducts(req, res) {
   try {
-    const { minPrice, maxPrice, category, date } = req.query;
+    const { minPrice, maxPrice, category, date, withPromo } = req.query;
 
     const filter = {};
 
@@ -198,14 +218,27 @@ async function getFilteredProducts(req, res) {
     if (minPrice) filter.price = { ...filter.price, $gte: Number(minPrice) };
     if (maxPrice) filter.price = { ...filter.price, $lte: Number(maxPrice) };
 
-    // Category filter
-    if (category) filter.category = category;
+    // Category filter - now category is an array
+    if (category) {
+      filter.category = { $in: [category] }; // Check if category array contains the specified category
+    }
+
+    // Promo filter - check if promo exists and is > 0
+    if (withPromo === "true") {
+      filter.promo = { $exists: true, $ne: null, $gt: 0 };
+    }
 
     // Date sorting
     let sortBy = { createdAt: -1 }; // default: le plus récent
-
     if (date === "dsc") sortBy = { createdAt: -1 }; // le plus récent
     if (date === "asc") sortBy = { createdAt: 1 }; // le plus ancien
+
+    // Price sorting option
+    if (req.query.sort === "price-asc") {
+      sortBy = { price: 1 };
+    } else if (req.query.sort === "price-desc") {
+      sortBy = { price: -1 };
+    }
 
     const products = await Product.find(filter).sort(sortBy);
 
@@ -222,6 +255,14 @@ async function getProduct(req, res) {
     const artisan = await User.findById(product.artisan);
     const bio = await Profile.findOne({ user: artisan._id });
     res.json({ success: true, product: product, artisan: artisan, bio: bio });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+async function getProducts(req, res) {
+  try {
+    const products = await Product.find().sort({ createdAt: -1 });
+    res.json({ success: true, products: products });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -26,10 +26,13 @@ const loadBio = async (req, res) => {
     if (!profile) {
       return res.status(404).json({ msg: "Profile not found" });
     }
+    console.log(profile);
     res.status(200).json({
       user: profile.user,
       bio: profile.bio,
       image: profile.image,
+      social: profile.social,
+      location: profile.location,
     });
   } catch (error) {
     console.error("Load bio error:", error);
@@ -87,12 +90,18 @@ const editUserPicture = async (req, res) => {
 const editUserBio = async (req, res) => {
   try {
     const user = req.user;
-    const { bio } = req.body;
+    const { bio, social, location } = req.body;
     let profile = await Profile.findOne({ user });
     if (!profile) {
       profile = await Profile.create({ user });
     }
     profile.bio = bio;
+    if (social) {
+      profile.social = social;
+    }
+    if (location) {
+      profile.location = location;
+    }
     await profile.save();
     res.status(200).json({
       msg: "Profile bio updated successfully",
