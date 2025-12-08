@@ -144,24 +144,21 @@ async function editProduct(req, res) {
 
     const product = await Product.findById(id);
     if (user.isAdmin || product.artisan.equals(user._id)) {
-      let updatedObject = {};
-      if (dimensions.trim() !== "") {
-        updatedObject = {
-          title,
-          description,
-          price,
-          promo,
-          category,
-          dimensions,
-        };
-      } else {
-        updatedObject = {
-          title,
-          description,
-          price,
-          promo,
-          category,
-        };
+      let updatedObject = {
+        title,
+        description,
+        price,
+        promo,
+      };
+
+      // Add categories if provided
+      if (category && category.length > 0) {
+        updatedObject.category = category; // Changed to 'categories'
+      }
+
+      // Add dimensions if provided and not empty
+      if (dimensions && dimensions.trim() !== "") {
+        updatedObject.dimensions = dimensions;
       }
 
       await Product.findByIdAndUpdate(id, updatedObject);
@@ -179,7 +176,7 @@ async function editProduct(req, res) {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error,
+      message: error.message, // Changed to error.message for better error handling
     });
   }
 }
